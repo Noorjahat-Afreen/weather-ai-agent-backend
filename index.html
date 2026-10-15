@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather AI Agent</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #101d40, #315c91, #6b83b8);
+      padding: 28px 16px;
+    }
+    .container { max-width: 950px; margin: auto; }
+    header { text-align: center; margin-bottom: 28px; }
+    header h1 { font-size: clamp(28px, 5vw, 42px); margin: 8px 0; }
+    header p { color: #dbeafe; }
+    .search { display: flex; gap: 10px; max-width: 620px; margin: 24px auto; }
+    .search input {
+      width: 100%; min-width: 0; padding: 15px;
+      border: 0; border-radius: 14px; font-size: 16px;
+      outline: none;
+    }
+    button {
+      border: 0; border-radius: 14px; padding: 14px 20px;
+      background: #fbbf24; color: #172554; font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #fde68a; }
+    .suggestions-list {
+      max-width: 620px; margin: -15px auto 20px;
+      background: white; color: #172554; border-radius: 12px;
+      overflow: hidden;
+    }
+    .suggestion-option { padding: 12px 16px; cursor: pointer; }
+    .suggestion-option:hover { background: #dbeafe; }
+    .message { text-align: center; margin: 16px 0; }
+    .card {
+      background: rgba(255,255,255,.13);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 22px; padding: 22px; margin: 16px 0;
+      backdrop-filter: blur(12px);
+    }
+    .weather-main { text-align: center; padding: 28px 12px; }
+    .weather-icon { font-size: 58px; }
+    .temperature { font-size: 64px; font-weight: bold; margin: 10px; }
+    .muted { color: #dbeafe; }
+    .stats, .forecast {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px; margin-top: 20px;
+    }
+    .stat, .day {
+      padding: 16px; border-radius: 16px;
+      background: rgba(255,255,255,.10); text-align: center;
+    }
+    h2 { margin-top: 0; }
+    .tip { padding: 12px 0; border-bottom: 1px solid #ffffff30; }
+    .tip:last-child { border-bottom: 0; }
+    .hidden { display: none; }
+    footer { text-align: center; color: #dbeafe; padding: 20px; font-size: 13px; }
+    @media(max-width: 480px) {
+      .search { flex-direction: column; }
+      .temperature { font-size: 52px; }
+      .card { padding: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div style="font-size:42px">🌦️</div>
+      <h1>Weather AI Agent</h1>
+      <p>Your smart weather companion</p>
+    </header>
+
+    <div class="search">
+      <input id="cityInput" type="text" placeholder="Enter city, e.g. Bhopal"
+             autocomplete="off">
+      <button id="searchBtn">Get Weather</button>
+    </div>
+    <div id="citySuggestions" class="suggestions-list hidden"></div>
+    <div id="message" class="message">Search a city to explore its weather.</div>
+
+    <section id="weatherContent" class="hidden">
+      <div class="card weather-main">
+        <div id="weatherIcon" class="weather-icon">🌤️</div>
+        <h2 id="cityName">City</h2>
+        <div id="temperature" class="temperature">--°</div>
+        <div id="description">Weather details</div>
+        <p class="muted" id="feelsLike"></p>
+        <div class="stats">
+          <div class="stat"><div>💧 Humidity</div><h3 id="humidity">--</h3></div>
+          <div class="stat"><div>💨 Wind</div><h3 id="wind">--</h3></div>
+          <div class="stat"><div>🌡️ Real feel</div><h3 id="realFeel">--</h3></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📅 5-Day Forecast</h2>
+        <div id="forecast" class="forecast"></div>
+      </div>
+
+      <div class="card">
+        <h2>🤖 AI Weather Insights</h2>
+        <p id="headline">Your weather insights will appear here.</p>
+        <div id="tips"></div>
+      </div>
+    </section>
+
+    <footer>Weather AI Agent · Powered by AccuWeather</footer>
+  </div>
+
+  <script>
+    // IMPORTANT: Replace this with your actual Render service URL.
+    const API_BASE = "https://YOUR-SERVICE-NAME.onrender.com";
+
+    const $ = id => document.getElementById(id);
+    let debounceTimer;
+
+    function first(obj, keys, fallback = null) {
+      if (!obj || typeof obj !== "object") return fallback;
+      for (const key of keys) {
+        if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+      }
+      return fallback;
+    }
+
+    function getTemp(obj) {
+      const value = first(obj, ["temperature", "Temperature", "temp", "TemperatureValue"]);
+      if (typeof value === "object" && value !== null)
+        return first(value, ["Value", "value"], "--");
+      return value ?? "--";
+    }
+
+    function weatherEmoji(text = "") {
+      text = String(text).toLowerCase();
+      if (text.includes("thunder")) return "⛈️";
+      if (text.includes("rain") || text.includes("shower")) return "🌧️";
+      if (text.includes("snow")) return "❄️";
+      if (text.includes("cloud")) return "☁️";
+      if (text.includes("sun") || text.includes("clear")) return "☀️";
+      if (text.includes("fog")) return "🌫️";
+      return "🌤️";
+    }
+
+    function getArray(data, keys) {
+      const value = first(data, keys, []);
+      return Array.isArray(value) ? value : [];
+    }
+
+    async function loadWeather(city) {
+      if (!city.trim()) {
+        $("message").textContent = "Please enter a city name.";
+        return;
+      }
+
+      $("message").textContent = "⏳ Fetching weather... First request may take a little time.";
+      $("weatherContent").classList.add("hidden");
+      $("citySuggestions").classList.add("hidden");
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/api/weather?city=${encodeURIComponent(city.trim())}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || data.message || "Unable to fetch weather.");
+        }
+
+        if (data.error) throw new Error(data.error);
+
+        const current = first(data, ["current", "current_weather", "currentWeather", "weather"], data);
+        const condition = first(current, ["text", "Text", "condition", "description", "weatherText", "WeatherText"], "Weather information");
+        const temp = getTemp(current);
+        const cityObj = first(data, ["city", "location"], city);
+        const cityLabel = typeof cityObj === "string"
+          ? cityObj
+          : first(cityObj, ["name", "Name", "LocalizedName"], city);
+
+        $("cityName").textContent = cityLabel;
+        $("weatherIcon").textContent = weatherEmoji(condition);
+        $("temperature").textContent = temp === "--" ? "--°" : `${temp}°`;
+        $("description").textContent = condition;
+
+        const feels = first(current, ["feels_like", "feelsLike", "RealFeelTemperature", "realFeel"], null);
+        $("feelsLike").textContent = feels != null ? `Feels like ${getTemp({temperature: feels})}°` : "";
+
+        $("humidity").textContent = (first(current, ["humidity", "RelativeHumidity"], "--")) + "%";
+        const windObj = first(current, ["wind", "Wind"], null);
+        const wind = typeof windObj === "object" && windObj
+          ? first(windObj, ["speed", "Speed"], "--")
+          : first(current, ["wind_speed", "windSpeed"], windObj ?? "--");
+        $("wind").textContent = wind + (wind === "--" ? "" : " km/h");
+        $("realFeel").textContent = feels != null ? `${getTemp({temperature: feels})}°` : "--";
+
+        const headline = first(data, ["headline", "Headline", "summary"], "Weather report for " + cityLabel);
+        $("headline").textContent = typeof headline === "object"
+          ? first(headline, ["text", "Text"], JSON.stringify(headline))
+          : headline;
+
+        const forecast = getArray(data, ["forecast", "forecasts", "daily_forecast", "dailyForecast"]);
+        $("forecast").innerHTML = "";
+
+        if (!forecast.length) {
+          $("forecast").innerHTML = '<p class="muted">Forecast data was not included in the response.</p>';
+        } else {
+          forecast.slice(0, 5).forEach(day => {
+            const date = first(day, ["date", "Date"], "");
+            const label = date ? new Date(date).toLocaleDateString("en", {weekday:"short", day:"numeric", month:"short"}) : "Forecast";
+            const dayCondition = first(day, ["text", "condition", "description", "day"], "Weather");
+            const dayTemp = getTemp(day);
+            const high = first(day, ["max", "maximum", "high", "Maximum"], null);
+            const low = first(day, ["min", "minimum", "low", "Minimum"], null);
+            const tempText = high != null && low != null
+              ? `${low}° / ${high}°`
+              : `${dayTemp}°`;
+            const item = document.createElement("div");
+            item.className = "day";
+            item.innerHTML = `<div>${weatherEmoji(dayCondition)}</div>
+              <p><strong>${label}</strong></p>
+              <div>${tempText}</div>
+              <small>${String(dayCondition)}</small>`;
+            $("forecast").appendChild(item);
+          });
+        }
+
+        const tips = getArray(data, ["suggestions", "tips", "recommendations", "advice"]);
+        $("tips").innerHTML = "";
+        if (tips.length) {
+          tips.forEach(tip => {
+            const div = document.createElement("div");
+            div.className = "tip";
+            div.textContent = typeof tip === "string"
+              ? "💡 " + tip
+              : "💡 " + (first(tip, ["text", "message", "suggestion"], JSON.stringify(tip)));
+            $("tips").appendChild(div);
+          });
+        } else {
+          $("tips").innerHTML = '<p class="muted">Stay updated with the latest local weather before heading out.</p>';
+        }
+
+        $("message").textContent = "✅ Weather loaded successfully.";
+        $("weatherContent").classList.remove("hidden");
+      } catch (error) {
+        $("message").textContent = "❌ " + error.message +
+          " Check your API URL or try again in a moment.";
+      }
+    }
+
+    async function findCities(query) {
+      if (query.trim().length < 2) {
+        $("citySuggestions").classList.add("hidden");
+        return;
+      }
+      try {
+        const response = await fetch(
+          `${API_BASE}/api/cities?q=${encodeURIComponent(query.trim())}`
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        const cities = Array.isArray(data) ? data : getArray(data, ["cities", "results", "suggestions"]);
+        const box = $("citySuggestions");
+        box.innerHTML = "";
+
+        cities.slice(0, 6).forEach(city => {
+          const name = typeof city === "string"
+            ? city
+            : first(city, ["name", "Name", "LocalizedName"], "");
+          if (!name) return;
+          const option = document.createElement("div");
+          option.className = "suggestion-option";
+          option.textContent = name;
+          option.addEventListener("click", () => {
+            $("cityInput").value = name;
+            box.classList.add("hidden");
+            loadWeather(name);
+          });
+          box.appendChild(option);
+        });
+
+        box.classList.toggle("hidden", !box.children.length);
+      } catch (_) {
+        $("citySuggestions").classList.add("hidden");
+      }
+    }
+
+    $("searchBtn").addEventListener("click", () => loadWeather($("cityInput").value));
+    $("cityInput").addEventListener("keydown", event => {
+      if (event.key === "Enter") loadWeather($("cityInput").value);
+    });
+    $("cityInput").addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => findCities($("cityInput").value), 350);
+    });
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".search") && !event.target.closest("#citySuggestions")) {
+        $("citySuggestions").classList.add("hidden");
+      }
+    });
+  </script>
+</body>
+</html>
