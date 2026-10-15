@@ -4,97 +4,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#152447">
   <title>Weather AI Agent</title>
   <style>
     * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100vh;
+      margin: 0;
+      min-height: 100vh;
       font-family: Arial, sans-serif;
       color: #fff;
-      background: linear-gradient(135deg, #101d40, #315c91, #6b83b8);
-      padding: 28px 16px;
+      background: linear-gradient(135deg, #101b38, #294f82, #7187b7);
+      padding: 24px 15px 40px;
     }
-    .container { max-width: 950px; margin: auto; }
+    .container { max-width: 1000px; margin: auto; }
     header { text-align: center; margin-bottom: 28px; }
-    header h1 { font-size: clamp(28px, 5vw, 42px); margin: 8px 0; }
+    .logo { font-size: 46px; }
+    h1 { margin: 8px 0; font-size: clamp(28px, 5vw, 43px); }
     header p { color: #dbeafe; }
-    .search { display: flex; gap: 10px; max-width: 620px; margin: 24px auto; }
-    .search input {
-      width: 100%; min-width: 0; padding: 15px;
-      border: 0; border-radius: 14px; font-size: 16px;
-      outline: none;
+    .tag {
+      display: inline-block; padding: 7px 13px; border-radius: 30px;
+      background: #ffffff18; font-size: 12px; letter-spacing: 1px;
+    }
+    .search-wrap { max-width: 650px; margin: 24px auto; position: relative; }
+    .search { display: flex; gap: 10px; }
+    input {
+      flex: 1; width: 100%; min-width: 0; padding: 16px;
+      border: 1px solid #ffffff40; border-radius: 14px;
+      font-size: 16px; outline: none; background: #fff; color: #172554;
     }
     button {
-      border: 0; border-radius: 14px; padding: 14px 20px;
-      background: #fbbf24; color: #172554; font-weight: bold;
-      cursor: pointer;
+      border: none; border-radius: 14px; padding: 14px 20px;
+      background: #fbbf24; color: #172554; font-size: 15px;
+      font-weight: bold; cursor: pointer;
     }
     button:hover { background: #fde68a; }
-    .suggestions-list {
-      max-width: 620px; margin: -15px auto 20px;
-      background: white; color: #172554; border-radius: 12px;
-      overflow: hidden;
+    button:disabled { opacity: .65; cursor: wait; }
+    #citySuggestions {
+      position: absolute; top: 58px; left: 0; right: 0;
+      z-index: 5; background: white; color: #172554;
+      border-radius: 12px; overflow: hidden; box-shadow: 0 8px 25px #0003;
     }
-    .suggestion-option { padding: 12px 16px; cursor: pointer; }
-    .suggestion-option:hover { background: #dbeafe; }
-    .message { text-align: center; margin: 16px 0; }
+    .city-option { padding: 13px 16px; cursor: pointer; }
+    .city-option:hover { background: #dbeafe; }
+    .hidden { display: none !important; }
+    #message { text-align: center; margin: 22px 0; color: #e0ecff; }
     .card {
-      background: rgba(255,255,255,.13);
-      border: 1px solid rgba(255,255,255,.2);
-      border-radius: 22px; padding: 22px; margin: 16px 0;
+      background: #ffffff16; border: 1px solid #ffffff30;
+      border-radius: 22px; padding: 23px; margin: 17px 0;
+      box-shadow: 0 12px 30px #07132a20;
       backdrop-filter: blur(12px);
     }
-    .weather-main { text-align: center; padding: 28px 12px; }
-    .weather-icon { font-size: 58px; }
-    .temperature { font-size: 64px; font-weight: bold; margin: 10px; }
+    .hero { text-align: center; padding: 28px 15px; }
+    .weather-icon { font-size: 65px; }
+    .city { font-size: 28px; margin: 12px 0; }
+    .temperature { font-size: clamp(55px, 10vw, 78px); font-weight: bold; margin: 6px 0; }
+    .condition { font-size: 20px; }
     .muted { color: #dbeafe; }
     .stats, .forecast {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 12px; margin-top: 20px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 12px; margin-top: 22px;
     }
     .stat, .day {
-      padding: 16px; border-radius: 16px;
-      background: rgba(255,255,255,.10); text-align: center;
+      background: #ffffff12; border: 1px solid #ffffff20;
+      border-radius: 16px; padding: 17px 10px; text-align: center;
     }
+    .stat-icon { font-size: 25px; }
+    .stat h3 { margin-bottom: 0; }
     h2 { margin-top: 0; }
-    .tip { padding: 12px 0; border-bottom: 1px solid #ffffff30; }
+    .forecast-icon { font-size: 32px; margin: 9px; }
+    .day p { margin: 8px 0; }
+    .tip {
+      padding: 13px 0; line-height: 1.5;
+      border-bottom: 1px solid #ffffff25;
+    }
     .tip:last-child { border-bottom: 0; }
-    .hidden { display: none; }
-    footer { text-align: center; color: #dbeafe; padding: 20px; font-size: 13px; }
-    @media(max-width: 480px) {
+    .headline { line-height: 1.6; }
+    footer { text-align: center; color: #dbeafe; padding-top: 24px; font-size: 13px; }
+    @media (max-width: 480px) {
       .search { flex-direction: column; }
-      .temperature { font-size: 52px; }
+      #citySuggestions { top: 57px; }
       .card { padding: 17px; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <main class="container">
     <header>
-      <div style="font-size:42px">🌦️</div>
+      <div class="logo">🌦️</div>
+      <div class="tag">SMART WEATHER ASSISTANT</div>
       <h1>Weather AI Agent</h1>
-      <p>Your smart weather companion</p>
+      <p>Your personal weather companion</p>
     </header>
 
-    <div class="search">
-      <input id="cityInput" type="text" placeholder="Enter city, e.g. Bhopal"
-             autocomplete="off">
-      <button id="searchBtn">Get Weather</button>
+    <div class="search-wrap">
+      <div class="search">
+        <input id="cityInput" type="text"
+               placeholder="Search a city, e.g. Bhopal"
+               autocomplete="off" aria-label="City name">
+        <button id="searchBtn">Search ☁️</button>
+      </div>
+      <div id="citySuggestions" class="hidden"></div>
     </div>
-    <div id="citySuggestions" class="suggestions-list hidden"></div>
-    <div id="message" class="message">Search a city to explore its weather.</div>
+
+    <div id="message" role="status">Enter a city to get started.</div>
 
     <section id="weatherContent" class="hidden">
-      <div class="card weather-main">
+      <div class="card hero">
         <div id="weatherIcon" class="weather-icon">🌤️</div>
-        <h2 id="cityName">City</h2>
+        <div id="cityName" class="city">City</div>
         <div id="temperature" class="temperature">--°</div>
-        <div id="description">Weather details</div>
-        <p class="muted" id="feelsLike"></p>
+        <div id="description" class="condition">Weather condition</div>
+        <p id="feelsLike" class="muted"></p>
+
         <div class="stats">
-          <div class="stat"><div>💧 Humidity</div><h3 id="humidity">--</h3></div>
-          <div class="stat"><div>💨 Wind</div><h3 id="wind">--</h3></div>
-          <div class="stat"><div>🌡️ Real feel</div><h3 id="realFeel">--</h3></div>
+          <div class="stat">
+            <div class="stat-icon">💧</div>
+            <div class="muted">Humidity</div>
+            <h3 id="humidity">--</h3>
+          </div>
+          <div class="stat">
+            <div class="stat-icon">💨</div>
+            <div class="muted">Wind</div>
+            <h3 id="wind">--</h3>
+          </div>
+          <div class="stat">
+            <div class="stat-icon">🌡️</div>
+            <div class="muted">Feels like</div>
+            <h3 id="realFeel">--</h3>
+          </div>
         </div>
       </div>
 
@@ -105,22 +142,22 @@
 
       <div class="card">
         <h2>🤖 AI Weather Insights</h2>
-        <p id="headline">Your weather insights will appear here.</p>
+        <p id="headline" class="headline">Weather insights will appear here.</p>
         <div id="tips"></div>
       </div>
     </section>
 
-    <footer>Weather AI Agent · Powered by AccuWeather</footer>
-  </div>
+    <footer>Weather AI Agent · Weather data powered by AccuWeather</footer>
+  </main>
 
   <script>
-    // IMPORTANT: Replace this with your actual Render service URL.
-    const API_BASE = "https://YOUR-SERVICE-NAME.onrender.com";
+    // Your deployed Render backend URL
+    const API_BASE = "https://weather-ai-agent-backend-9tj5.onrender.com";
 
     const $ = id => document.getElementById(id);
-    let debounceTimer;
+    let searchTimer;
 
-    function first(obj, keys, fallback = null) {
+    function pick(obj, keys, fallback = null) {
       if (!obj || typeof obj !== "object") return fallback;
       for (const key of keys) {
         if (obj[key] !== undefined && obj[key] !== null) return obj[key];
@@ -128,126 +165,204 @@
       return fallback;
     }
 
-    function getTemp(obj) {
-      const value = first(obj, ["temperature", "Temperature", "temp", "TemperatureValue"]);
-      if (typeof value === "object" && value !== null)
-        return first(value, ["Value", "value"], "--");
-      return value ?? "--";
-    }
-
-    function weatherEmoji(text = "") {
-      text = String(text).toLowerCase();
-      if (text.includes("thunder")) return "⛈️";
-      if (text.includes("rain") || text.includes("shower")) return "🌧️";
-      if (text.includes("snow")) return "❄️";
-      if (text.includes("cloud")) return "☁️";
-      if (text.includes("sun") || text.includes("clear")) return "☀️";
-      if (text.includes("fog")) return "🌫️";
-      return "🌤️";
-    }
-
-    function getArray(data, keys) {
-      const value = first(data, keys, []);
+    function listFrom(data, keys) {
+      const value = pick(data, keys, []);
       return Array.isArray(value) ? value : [];
     }
 
+    function temperatureValue(value) {
+      if (value === null || value === undefined) return "--";
+      if (typeof value === "object") {
+        return pick(value, ["Value", "value", "Metric"], "--") === "Metric"
+          ? "--" : pick(value, ["Value", "value"], "--");
+      }
+      return value;
+    }
+
+    function getTemperature(obj) {
+      const value = pick(obj, ["temperature", "Temperature", "temp"], null);
+      return temperatureValue(value);
+    }
+
+    function getCondition(obj) {
+      return pick(obj, [
+        "text", "Text", "condition", "description",
+        "weatherText", "WeatherText", "iconPhrase", "IconPhrase"
+      ], "Weather information");
+    }
+
+    function emojiFor(condition) {
+      const s = String(condition || "").toLowerCase();
+      if (s.includes("thunder")) return "⛈️";
+      if (s.includes("rain") || s.includes("shower")) return "🌧️";
+      if (s.includes("snow") || s.includes("ice")) return "❄️";
+      if (s.includes("fog") || s.includes("mist")) return "🌫️";
+      if (s.includes("cloud") && (s.includes("sun") || s.includes("partly"))) return "⛅";
+      if (s.includes("cloud")) return "☁️";
+      if (s.includes("sun") || s.includes("clear")) return "☀️";
+      return "🌤️";
+    }
+
+    function asText(value, fallback = "--") {
+      if (value === null || value === undefined) return fallback;
+      if (typeof value === "object") {
+        return String(pick(value, ["Value", "value", "Text", "text"], fallback));
+      }
+      return String(value);
+    }
+
+    function displayDate(value) {
+      if (!value) return "Forecast";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleDateString("en-IN", {
+        weekday: "short", day: "numeric", month: "short"
+      });
+    }
+
     async function loadWeather(city) {
-      if (!city.trim()) {
+      city = city.trim();
+      if (!city) {
         $("message").textContent = "Please enter a city name.";
         return;
       }
 
-      $("message").textContent = "⏳ Fetching weather... First request may take a little time.";
+      $("searchBtn").disabled = true;
+      $("message").textContent =
+        "⏳ Getting weather data... The first request may take up to a minute.";
       $("weatherContent").classList.add("hidden");
       $("citySuggestions").classList.add("hidden");
 
       try {
         const response = await fetch(
-          `${API_BASE}/api/weather?city=${encodeURIComponent(city.trim())}`
+          `${API_BASE}/api/weather?city=${encodeURIComponent(city)}`
         );
         const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || data.message || "Unable to fetch weather.");
+        if (!response.ok || data.error) {
+          throw new Error(data.error || data.message || `Request failed (${response.status})`);
         }
 
-        if (data.error) throw new Error(data.error);
+        // Supports common response formats from the Flask backend.
+        const current = pick(data, [
+          "current", "current_weather", "currentWeather", "conditions"
+        ], data);
 
-        const current = first(data, ["current", "current_weather", "currentWeather", "weather"], data);
-        const condition = first(current, ["text", "Text", "condition", "description", "weatherText", "WeatherText"], "Weather information");
-        const temp = getTemp(current);
-        const cityObj = first(data, ["city", "location"], city);
-        const cityLabel = typeof cityObj === "string"
-          ? cityObj
-          : first(cityObj, ["name", "Name", "LocalizedName"], city);
+        const cityValue = pick(data, ["city", "location", "city_name"], city);
+        const cityName = typeof cityValue === "string"
+          ? cityValue
+          : pick(cityValue, ["name", "Name", "LocalizedName"], city);
 
-        $("cityName").textContent = cityLabel;
-        $("weatherIcon").textContent = weatherEmoji(condition);
+        const condition = getCondition(current);
+        const temp = getTemperature(current);
+        const feels = pick(current, [
+          "feels_like", "feelsLike", "real_feel", "RealFeelTemperature"
+        ], null);
+
+        $("cityName").textContent = cityName;
+        $("weatherIcon").textContent = emojiFor(condition);
         $("temperature").textContent = temp === "--" ? "--°" : `${temp}°`;
         $("description").textContent = condition;
+        $("feelsLike").textContent = feels !== null
+          ? `Feels like ${temperatureValue(feels)}°` : "";
+        $("realFeel").textContent = feels !== null
+          ? `${temperatureValue(feels)}°` : "--";
 
-        const feels = first(current, ["feels_like", "feelsLike", "RealFeelTemperature", "realFeel"], null);
-        $("feelsLike").textContent = feels != null ? `Feels like ${getTemp({temperature: feels})}°` : "";
+        const humidity = pick(current, ["humidity", "RelativeHumidity"], "--");
+        $("humidity").textContent = humidity === "--" ? "--" : `${humidity}%`;
 
-        $("humidity").textContent = (first(current, ["humidity", "RelativeHumidity"], "--")) + "%";
-        const windObj = first(current, ["wind", "Wind"], null);
-        const wind = typeof windObj === "object" && windObj
-          ? first(windObj, ["speed", "Speed"], "--")
-          : first(current, ["wind_speed", "windSpeed"], windObj ?? "--");
-        $("wind").textContent = wind + (wind === "--" ? "" : " km/h");
-        $("realFeel").textContent = feels != null ? `${getTemp({temperature: feels})}°` : "--";
+        const windObject = pick(current, ["wind", "Wind"], null);
+        let wind = pick(current, ["wind_speed", "windSpeed"], null);
+        if (windObject && typeof windObject === "object") {
+          const speedObject = pick(windObject, ["speed", "Speed"], null);
+          wind = speedObject && typeof speedObject === "object"
+            ? pick(speedObject, ["Value", "value"], "--")
+            : (speedObject ?? "--");
+        }
+        $("wind").textContent = wind === null || wind === "--"
+          ? "--" : `${asText(wind)} km/h`;
 
-        const headline = first(data, ["headline", "Headline", "summary"], "Weather report for " + cityLabel);
-        $("headline").textContent = typeof headline === "object"
-          ? first(headline, ["text", "Text"], JSON.stringify(headline))
-          : headline;
+        const headline = pick(data, ["headline", "Headline", "summary"], "");
+        $("headline").textContent = typeof headline === "object" && headline
+          ? asText(pick(headline, ["text", "Text"], ""), "Weather update")
+          : (headline || `Here is the latest weather update for ${cityName}.`);
 
-        const forecast = getArray(data, ["forecast", "forecasts", "daily_forecast", "dailyForecast"]);
-        $("forecast").innerHTML = "";
+        // Forecast
+        const forecast = listFrom(data, [
+          "forecast", "forecasts", "daily_forecast", "dailyForecast"
+        ]);
+        $("forecast").replaceChildren();
 
-        if (!forecast.length) {
-          $("forecast").innerHTML = '<p class="muted">Forecast data was not included in the response.</p>';
+        if (forecast.length === 0) {
+          const note = document.createElement("p");
+          note.className = "muted";
+          note.textContent = "No forecast data was returned by the backend.";
+          $("forecast").appendChild(note);
         } else {
           forecast.slice(0, 5).forEach(day => {
-            const date = first(day, ["date", "Date"], "");
-            const label = date ? new Date(date).toLocaleDateString("en", {weekday:"short", day:"numeric", month:"short"}) : "Forecast";
-            const dayCondition = first(day, ["text", "condition", "description", "day"], "Weather");
-            const dayTemp = getTemp(day);
-            const high = first(day, ["max", "maximum", "high", "Maximum"], null);
-            const low = first(day, ["min", "minimum", "low", "Minimum"], null);
-            const tempText = high != null && low != null
-              ? `${low}° / ${high}°`
-              : `${dayTemp}°`;
-            const item = document.createElement("div");
-            item.className = "day";
-            item.innerHTML = `<div>${weatherEmoji(dayCondition)}</div>
-              <p><strong>${label}</strong></p>
-              <div>${tempText}</div>
-              <small>${String(dayCondition)}</small>`;
-            $("forecast").appendChild(item);
+            const conditionText = getCondition(day);
+            const date = pick(day, ["date", "Date"], "");
+            const min = pick(day, ["min", "minimum", "low", "MinTemp"], null);
+            const max = pick(day, ["max", "maximum", "high", "MaxTemp"], null);
+            const temperature = getTemperature(day);
+
+            const temperatureText = min !== null && max !== null
+              ? `${temperatureValue(min)}° / ${temperatureValue(max)}°`
+              : (temperature === "--" ? "—" : `${temperature}°`);
+
+            const card = document.createElement("div");
+            card.className = "day";
+
+            const icon = document.createElement("div");
+            icon.className = "forecast-icon";
+            icon.textContent = emojiFor(conditionText);
+
+            const dayDate = document.createElement("p");
+            const strong = document.createElement("strong");
+            strong.textContent = displayDate(date);
+            dayDate.appendChild(strong);
+
+            const temps = document.createElement("p");
+            temps.textContent = temperatureText;
+
+            const desc = document.createElement("small");
+            desc.textContent = conditionText;
+
+            card.append(icon, dayDate, temps, desc);
+            $("forecast").appendChild(card);
           });
         }
 
-        const tips = getArray(data, ["suggestions", "tips", "recommendations", "advice"]);
-        $("tips").innerHTML = "";
-        if (tips.length) {
-          tips.forEach(tip => {
-            const div = document.createElement("div");
-            div.className = "tip";
-            div.textContent = typeof tip === "string"
-              ? "💡 " + tip
-              : "💡 " + (first(tip, ["text", "message", "suggestion"], JSON.stringify(tip)));
-            $("tips").appendChild(div);
-          });
+        // Backend-generated suggestions
+        const tips = listFrom(data, [
+          "suggestions", "tips", "recommendations", "advice"
+        ]);
+        $("tips").replaceChildren();
+
+        if (tips.length === 0) {
+          const tip = document.createElement("div");
+          tip.className = "tip";
+          tip.textContent = "💡 Check local weather updates before planning outdoor activities.";
+          $("tips").appendChild(tip);
         } else {
-          $("tips").innerHTML = '<p class="muted">Stay updated with the latest local weather before heading out.</p>';
+          tips.forEach(item => {
+            const tip = document.createElement("div");
+            tip.className = "tip";
+            const text = typeof item === "string"
+              ? item
+              : pick(item, ["text", "message", "suggestion"], JSON.stringify(item));
+            tip.textContent = `💡 ${text}`;
+            $("tips").appendChild(tip);
+          });
         }
 
-        $("message").textContent = "✅ Weather loaded successfully.";
+        $("message").textContent = "✅ Weather loaded successfully!";
         $("weatherContent").classList.remove("hidden");
       } catch (error) {
-        $("message").textContent = "❌ " + error.message +
-          " Check your API URL or try again in a moment.";
+        $("message").textContent =
+          `❌ ${error.message}. Please check the city or try again.`;
+      } finally {
+        $("searchBtn").disabled = false;
       }
     }
 
@@ -256,23 +371,29 @@
         $("citySuggestions").classList.add("hidden");
         return;
       }
+
       try {
         const response = await fetch(
           `${API_BASE}/api/cities?q=${encodeURIComponent(query.trim())}`
         );
         if (!response.ok) return;
-        const data = await response.json();
-        const cities = Array.isArray(data) ? data : getArray(data, ["cities", "results", "suggestions"]);
-        const box = $("citySuggestions");
-        box.innerHTML = "";
 
-        cities.slice(0, 6).forEach(city => {
-          const name = typeof city === "string"
-            ? city
-            : first(city, ["name", "Name", "LocalizedName"], "");
+        const data = await response.json();
+        const cities = Array.isArray(data)
+          ? data
+          : listFrom(data, ["cities", "results", "suggestions"]);
+
+        const box = $("citySuggestions");
+        box.replaceChildren();
+
+        cities.slice(0, 6).forEach(item => {
+          const name = typeof item === "string"
+            ? item
+            : pick(item, ["name", "Name", "LocalizedName"], "");
           if (!name) return;
+
           const option = document.createElement("div");
-          option.className = "suggestion-option";
+          option.className = "city-option";
           option.textContent = name;
           option.addEventListener("click", () => {
             $("cityInput").value = name;
@@ -282,22 +403,33 @@
           box.appendChild(option);
         });
 
-        box.classList.toggle("hidden", !box.children.length);
+        box.classList.toggle("hidden", box.children.length === 0);
       } catch (_) {
         $("citySuggestions").classList.add("hidden");
       }
     }
 
-    $("searchBtn").addEventListener("click", () => loadWeather($("cityInput").value));
+    $("searchBtn").addEventListener("click", () => {
+      loadWeather($("cityInput").value);
+    });
+
     $("cityInput").addEventListener("keydown", event => {
-      if (event.key === "Enter") loadWeather($("cityInput").value);
+      if (event.key === "Enter") {
+        event.preventDefault();
+        loadWeather($("cityInput").value);
+      }
+      if (event.key === "Escape") {
+        $("citySuggestions").classList.add("hidden");
+      }
     });
+
     $("cityInput").addEventListener("input", () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => findCities($("cityInput").value), 350);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => findCities($("cityInput").value), 350);
     });
+
     document.addEventListener("click", event => {
-      if (!event.target.closest(".search") && !event.target.closest("#citySuggestions")) {
+      if (!event.target.closest(".search-wrap")) {
         $("citySuggestions").classList.add("hidden");
       }
     });
